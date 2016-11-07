@@ -329,20 +329,25 @@ def button_delete(sender):
 # handles the button that inserts pi
 def button_pi(sender):
     global templabel
-    global stack
-    # first press enter
-    button_enter(sender)
     
-    # the pi button should immediately add pi to the stack, i.e., enter pi and enter
     stack0 = sender.superview['stack0']
+    
+    # catch float error
+    try:
+        float(stack0.text)
+    except ValueError:
+        stack0.text = 'ERR'
+        return None
+    
+    # add the number to the stack
+    if templabel is not None:
+        stackaddone(sender, stack0.text)
     
     result = np.pi
     
-    # now add pi to stack0 and add it to the stack
-    stack0.text = formatting.format(result)
-    
     # redo the stack
     stackaddone(sender, result)
+    update_display(sender)
     
     # set templabel
     templabel = None
