@@ -134,14 +134,15 @@ def button_zero(sender):
     global templabel
     bzero = sender.superview['b_zero']
     stack0 = sender.superview['stack0']
-    stack1 = sender.superview['stack1']
-    stack2 = sender.superview['stack2']
-    stack3 = sender.superview['stack3']
+    # stack1 = sender.superview['stack1']
+    # stack2 = sender.superview['stack2']
+    # stack3 = sender.superview['stack3']
         
     # if it is zero the typed number:
-    if bzero.title == 'Zero':
+    if bzero.title == 'Zero' and templabel is not '' and templabel is not None:
+        stack0.text = ''
         templabel = ''
-        stack0.text = formatting.format(0.)
+        
     elif bzero.title == 'Reset':
         templabel = None
         stack = np.zeros(len(stack))
@@ -165,16 +166,12 @@ def button_simple_op(sender):
         float(stack0.text)
     except ValueError:
         stack0.text = 'ERR'
+        templabel = ''
+        if seclayer: seclayer_reset(sender)
         return None
-        
-    # add the number to the stack
-    if templabel is not None:
-        stackaddone(sender, stack0.text)
     
     # switch for some cases
-    if op == 'log':
-        op = 'log10'
-    elif op == 'ln':
+    if op == 'ln':
         op = 'log'
     elif op == 'asin':
         op = 'arcsin'
@@ -183,18 +180,59 @@ def button_simple_op(sender):
     elif op == 'atan':
         op = 'arctan'
     
+    # check for stupidity:
+    if op == 'log' or op == 'sqrt':
+        if float(stack0.text) < 0.:
+            stack0.text = 'ERR < 0'
+            templabel = ''
+            if seclayer: seclayer_reset(sender)
+            return None
+            
+    # add the number to the stack
+    if templabel is not None:
+        stackaddone(sender, stack0.text)
+    
     # calculate the result
     # radians true?
     if radians:
-        result = eval('np.' + op + '(' + stack0.text + ')')
+        try:
+            result = eval('np.' + op + '(' + stack0.text + ')')
+        except OverflowError:
+            stack0.text = 'TOO LARGE'
+            templabel = ''
+            if seclayer: seclayer_reset(sender)
+            return None
     else:
         if op == 'sin' or op == 'cos' or op == 'tan':
-            result = eval('np.' + op + '(np.deg2rad(' + stack0.text + '))')
+            try:
+                result = eval('np.' + op + '(np.deg2rad(' + stack0.text + '))')
+            except OverflowError:
+                stack0.text = 'TOO LARGE'
+                templabel = ''
+                if seclayer: seclayer_reset(sender)
+                return None
         elif op == 'arcsin' or op == 'arccos' or op == 'arctan':
-            result = eval('np.rad2deg(np.' + op + '(' + stack0.text + '))')
+            try:
+                result = eval('np.rad2deg(np.' + op + '(' + stack0.text + '))')
+            except OverflowError:
+                stack0.text = 'TOO LARGE'
+                templabel = ''
+                if seclayer: seclayer_reset(sender)
+                return None
         else:
-            result = eval('np.' + op + '(' + stack0.text + ')')
+            try:
+                result = eval('np.' + op + '(' + stack0.text + ')')
+            except OverflowError:
+                stack0.text = 'TOO LARGE'
+                templabel = ''
+                if seclayer: seclayer_reset(sender)
+                return None
     
+    if result == np.inf:
+        stack0.text = 'INF'
+        templabel = ''
+        if seclayer: seclayer_reset(sender)
+        return None
 
     # write the result to the stack
     stack[0] = float(result)
@@ -222,23 +260,54 @@ def button_simple_op2(sender):
         float(stack0.text)
     except ValueError:
         stack0.text = 'ERR'
+        templabel = ''
+        if seclayer: seclayer_reset(sender)
         return None
-        
+    
+    # check for stupidity:
+    if op == 'log' and float(stack0.text) < 0.:
+        stack0.text = 'ERR < 0'
+        templabel = ''
+        if seclayer: seclayer_reset(sender)
+        return None
+    
     # add the number to the stack
     if templabel is not None:
         stackaddone(sender, stack0.text)
     
     # calculate the result
     if op == 'log':
-        result = eval('np.log10(' + stack0.text + ')')
+        try:
+            result = eval('np.log10(' + stack0.text + ')')
+        except OverflowError:
+            stack0.text = 'TOO LARGE'
+            templabel = ''
+            if seclayer: seclayer_reset(sender)
+            return None
     elif op == '10^x':
-        result = eval('10.**' + stack0.text)
+        try:
+            result = eval('10.**' + stack0.text)
+        except OverflowError:
+            stack0.text = 'TOO LARGE'
+            templabel = ''
+            if seclayer: seclayer_reset(sender)
+            return None
     elif op == '1/x':
-        result = eval('1. / ' + stack0.text)
+        try:
+            result = eval('1. / ' + stack0.text)
+        except OverflowError:
+            stack0.text = 'TOO LARGE'
+            templabel = ''
+            if seclayer: seclayer_reset(sender)
+            return None
     elif op == 'x^2':
-        result = eval(stack0.text + '**2.')
-    elif op == '+/-':
-        result = eval('-' + stack0.text)
+        try:
+            result = eval(stack0.text + '**2.')
+        except OverflowError:
+            stack0.text = 'TOO LARGE'
+            templabel = ''
+            if seclayer: seclayer_reset(sender)
+            return None
     
     # write the result to the stack
     stack[0] = float(result)
@@ -251,6 +320,27 @@ def button_simple_op2(sender):
     # if it was in the seconadry layer, go out
     if seclayer:
         seclayer_reset(sender)
+        
+# takes care of the plus minus (sign switch) button
+def button_pm(sender):
+    global templabel
+    stack0 = sender.superview['stack0']
+    
+    # find out if a number is there or not
+    try:
+        float(stack0.text)
+    except ValueError:
+        stack0.text = 'ERR'
+        templabel = ''
+        if seclayer: seclayer_reset(sender)
+        return None
+    
+    if templabel[0] == '-':
+        templabel = templabel[1:]
+        stack0.text = templabel
+    else:
+        templabel = '-' + templabel
+        stack0.text = templabel
         
 # do operations on x and y (2 number operations)
 def button_op(sender):
@@ -278,11 +368,13 @@ def button_op(sender):
         float(stack0.text)
     except ValueError:
         stack0.text = 'ERR'
+        if seclayer: seclayer_reset(sender)
         return None
     
     # catch division by zero
     if op == '/' and float(stack0.text) == 0.:
         stack0.text = 'DIV 0!'
+        if seclayer: seclayer_reset(sender)
         return None
     
     # add the number to the stack
@@ -295,7 +387,13 @@ def button_op(sender):
         stack[0] = float(stack[1])
         stack[1] = tmp
     else:
-        result = eval(str(stack[1]) + op + str(stack[0]))
+        try:
+            result = eval(str(stack[1]) + op + str(stack[0]))
+        except OverflowError:
+            stack0.text = 'TOO LARGE'
+            templabel = ''
+            if seclayer: seclayer_reset(sender)
+            return None
         stack[0] = result
         for it in range(1, len(stack) - 1):
             stack[it] = stack[it + 1]
@@ -322,9 +420,13 @@ def button_delete(sender):
         templabel = templabel[:-1]
         stack0.text = templabel
     else:
-        stack0.text = formatting.format(0.)
-        #stack[0] = 0.
-        #update_display(sender)
+        templabel = None
+        oldstack = np.array(stack)
+        newstack = np.zeros(len(stack))
+        for it in range(len(newstack) - 1):
+            newstack[it] = oldstack[it + 1]
+        stack = newstack
+        update_display(sender)
 
 # handles the button that inserts pi
 def button_pi(sender):
@@ -472,8 +574,24 @@ def seclayer_reset(sender):
     
 # handles the string formatting button on the left
 def button_formatting(sender):
-    global formatting
+    global formatting    
+    global templabel
+    
     bform = sender.superview['b_format']
+    stack0 = sender.superview['stack0']
+    
+    # find out if a number is there or not
+    try:
+        float(stack0.text)
+    except ValueError:
+        stack0.text = 'ERR'
+        return None
+        
+    # add the number to the stack
+    if templabel is not None:
+        stackaddone(sender, stack0.text)
+    templabel = None
+    
     # now go along the toggle
     # sci13 > std > sci3 > start
     if bform.title == 'std':
