@@ -165,7 +165,7 @@ def button_simple_op(sender):
     try:
         float(stack0.text)
     except ValueError:
-        stack0.text = 'ERR'
+        hud_alert('Error', 'error')
         templabel = ''
         if seclayer: seclayer_reset(sender)
         return None
@@ -183,8 +183,7 @@ def button_simple_op(sender):
     # check for stupidity:
     if op == 'log' or op == 'sqrt':
         if float(stack0.text) < 0.:
-            stack0.text = 'ERR < 0'
-            templabel = ''
+            hud_alert('Error < 0', 'error')
             if seclayer: seclayer_reset(sender)
             return None
             
@@ -198,7 +197,7 @@ def button_simple_op(sender):
         try:
             result = eval('np.' + op + '(' + stack0.text + ')')
         except OverflowError:
-            stack0.text = 'TOO LARGE'
+            hud_alert('Overflow', 'error')
             templabel = ''
             if seclayer: seclayer_reset(sender)
             return None
@@ -207,7 +206,7 @@ def button_simple_op(sender):
             try:
                 result = eval('np.' + op + '(np.deg2rad(' + stack0.text + '))')
             except OverflowError:
-                stack0.text = 'TOO LARGE'
+                hud_alert('Overflow', 'error')
                 templabel = ''
                 if seclayer: seclayer_reset(sender)
                 return None
@@ -215,7 +214,7 @@ def button_simple_op(sender):
             try:
                 result = eval('np.rad2deg(np.' + op + '(' + stack0.text + '))')
             except OverflowError:
-                stack0.text = 'TOO LARGE'
+                hud_alert('Overflow', 'error')
                 templabel = ''
                 if seclayer: seclayer_reset(sender)
                 return None
@@ -223,13 +222,19 @@ def button_simple_op(sender):
             try:
                 result = eval('np.' + op + '(' + stack0.text + ')')
             except OverflowError:
-                stack0.text = 'TOO LARGE'
+                hud_alert('Overflow', 'error')
                 templabel = ''
                 if seclayer: seclayer_reset(sender)
                 return None
     
     if result == np.inf:
-        stack0.text = 'INF'
+        hud_alert('Infinity', 'error')
+        templabel = ''
+        if seclayer: seclayer_reset(sender)
+        return None
+
+    if result == np.nan:
+        hud_alert('NaN', 'error')
         templabel = ''
         if seclayer: seclayer_reset(sender)
         return None
@@ -259,15 +264,14 @@ def button_simple_op2(sender):
     try:
         float(stack0.text)
     except ValueError:
-        stack0.text = 'ERR'
+        hud_alert('Error', 'error')
         templabel = ''
         if seclayer: seclayer_reset(sender)
         return None
     
     # check for stupidity:
     if op == 'log' and float(stack0.text) < 0.:
-        stack0.text = 'ERR < 0'
-        templabel = ''
+        hud_alert('Error < 0', 'error')
         if seclayer: seclayer_reset(sender)
         return None
     
@@ -280,7 +284,7 @@ def button_simple_op2(sender):
         try:
             result = eval('np.log10(' + stack0.text + ')')
         except OverflowError:
-            stack0.text = 'TOO LARGE'
+            hud_alert('Overflow', 'error')
             templabel = ''
             if seclayer: seclayer_reset(sender)
             return None
@@ -288,7 +292,7 @@ def button_simple_op2(sender):
         try:
             result = eval('10.**' + stack0.text)
         except OverflowError:
-            stack0.text = 'TOO LARGE'
+            hud_alert('Overflow', 'error')
             templabel = ''
             if seclayer: seclayer_reset(sender)
             return None
@@ -296,7 +300,7 @@ def button_simple_op2(sender):
         try:
             result = eval('1. / ' + stack0.text)
         except OverflowError:
-            stack0.text = 'TOO LARGE'
+            hud_alert('Overflow', 'error')
             templabel = ''
             if seclayer: seclayer_reset(sender)
             return None
@@ -304,10 +308,22 @@ def button_simple_op2(sender):
         try:
             result = eval(stack0.text + '**2.')
         except OverflowError:
-            stack0.text = 'TOO LARGE'
+            hud_alert('Overflow', 'error')
             templabel = ''
             if seclayer: seclayer_reset(sender)
             return None
+            
+    if result == np.inf:
+        hud_alert('Infinity', 'error')
+        templabel = ''
+        if seclayer: seclayer_reset(sender)
+        return None
+
+    if result == np.nan:
+        hud_alert('NaN', 'error')
+        templabel = ''
+        if seclayer: seclayer_reset(sender)
+        return None
     
     # write the result to the stack
     stack[0] = float(result)
@@ -324,18 +340,24 @@ def button_simple_op2(sender):
 # takes care of the plus minus (sign switch) button
 def button_pm(sender):
     global templabel
+    global stack
     stack0 = sender.superview['stack0']
     
     # find out if a number is there or not
     try:
         float(stack0.text)
     except ValueError:
-        stack0.text = 'ERR'
+        hud_alert('Error', 'error')
         templabel = ''
         if seclayer: seclayer_reset(sender)
         return None
     
-    if templabel[0] == '-':
+    if templabel == None:
+        stack[0] = -stack[0]
+        update_display(sender)
+    elif templabel == '':
+        templabel = '-'
+    elif templabel[0] == '-':
         templabel = templabel[1:]
         stack0.text = templabel
     else:
@@ -367,13 +389,13 @@ def button_op(sender):
     try:
         float(stack0.text)
     except ValueError:
-        stack0.text = 'ERR'
+        hud_alert('Error', 'error')
         if seclayer: seclayer_reset(sender)
         return None
     
     # catch division by zero
     if op == '/' and float(stack0.text) == 0.:
-        stack0.text = 'DIV 0!'
+        hud_alert('Division by 0', 'error')
         if seclayer: seclayer_reset(sender)
         return None
     
@@ -390,7 +412,7 @@ def button_op(sender):
         try:
             result = eval(str(stack[1]) + op + str(stack[0]))
         except OverflowError:
-            stack0.text = 'TOO LARGE'
+            hud_alert('Overflow', 'error')
             templabel = ''
             if seclayer: seclayer_reset(sender)
             return None
@@ -438,7 +460,7 @@ def button_pi(sender):
     try:
         float(stack0.text)
     except ValueError:
-        stack0.text = 'ERR'
+        hud_alert('Error', 'error')
         return None
     
     # add the number to the stack
@@ -468,7 +490,7 @@ def swap_stack(sender):
     try:
         float(stack0.text)
     except ValueError:
-        stack0.text = 'ERR'
+        hud_alert('Error', 'error')
         return None
         
     # add the number to the stack
@@ -584,7 +606,7 @@ def button_formatting(sender):
     try:
         float(stack0.text)
     except ValueError:
-        stack0.text = 'ERR'
+        hud_alert('Error', 'error')
         return None
         
     # add the number to the stack
@@ -628,7 +650,7 @@ def button_copy(sender):
         clip = stack3
     
     clipboard.set(clip)
-    hud_alert('Copied')
+    hud_alert('Copied', 'success')
 
 # updates the display if something is added to the stack
 def update_display(sender):
@@ -655,7 +677,7 @@ def stackaddone(sender, numberin):
     except ValueError:
         stack = oldstack
         update_display(sender)
-        hud_alert('Error')
+        hud_alert('Error', 'error')
         return None
         
     for it in range(1, len(newstack)):
